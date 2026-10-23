@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biblioteca Escolar Digital</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eef2ff',
+                            100: '#e0e7ff',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Web App Manifest Dynamic Generator -->
+    <script>
+        // Generate dynamic manifest blob and inject into head
+        const manifestData = {
+            "name": "Biblioteca Escolar Digital",
+            "short_name": "Biblioteca",
+            "description": "Sistema de Gestão de Biblioteca Escolar",
+            "start_url": "./",
+            "display": "standalone",
+            "background_color": "#4f46e5",
+            "theme_color": "#4f46e5",
+            "icons": [
+                {
+                    "src": "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512' fill='%234f46e5'><rect width='512' height='512' rx='100' fill='%234f46e5'/><path d='M160 128h192v256H160z' fill='%23ffffff'/><path d='M200 160h112v192H200z' fill='%23e0e7ff'/></svg>",
+                    "sizes": "512x512",
+                    "type": "image/svg+xml",
+                    "purpose": "any maskable"
+                }
+            ]
+        };
+        const manifestBlob = new Blob([JSON.stringify(manifestData)], { type: 'application/json' });
+        const manifestURL = URL.createObjectURL(manifestBlob);
+        const link = document.createElement('link');
+        link.rel = 'manifest';
+        link.href = manifestURL;
+        document.head.appendChild(link);
+    </script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .tab-active { border-bottom: 3px solid #4f46e5; color: #4f46e5; font-weight: 600; }
+        /* Custom scrollbars */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="h-full flex flex-col min-h-screen text-slate-800 bg-slate-50">
+
+    <!-- Top Navigation Bar -->
+    <header class="bg-indigo-600 text-white shadow-md sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-16">
+            <div class="flex items-center space-x-3">
+                <div class="bg-white/10 p-2 rounded-lg backdrop-blur-sm">
+                    <i class="fa-solid fa-book-open text-2xl text-yellow-300"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight">Biblioteca Escolar</h1>
+                    <p class="text-xs text-indigo-200 hidden sm:block">Sistema de Gestão & Empréstimos</p>
+                </div>
+            </div>
+
+            <!-- Global Search Quick Action -->
+            <div class="flex items-center space-x-3">
+                <button onclick="exportData()" title="Backup de Dados" class="p-2 rounded-lg bg-indigo-700 hover:bg-indigo-800 text-xs flex items-center gap-1 transition">
+                    <i class="fa-solid fa-download"></i>
+                    <span class="hidden md:inline">Exportar</span>
+                </button>
+                <label class="p-2 rounded-lg bg-indigo-700 hover:bg-indigo-800 text-xs flex items-center gap-1 cursor-pointer transition">
+                    <i class="fa-solid fa-upload"></i>
+                    <span class="hidden md:inline">Importar</span>
+                    <input type="file" id="importFile" onchange="importData(event)" class="hidden" accept=".json">
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="bg-white border-b border-slate-200 sticky top-16 z-20 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex space-x-8 overflow-x-auto">
+            <button onclick="switchTab('dashboard')" id="tab-dashboard" class="py-4 px-1 text-sm font-medium whitespace-nowrap text-slate-500 hover:text-slate-700 flex items-center gap-2 tab-active">
+                <i class="fa-solid fa-chart-pie"></i> Painel Geral
+            </button>
+            <button onclick="switchTab('books')" id="tab-books" class="py-4 px-1 text-sm font-medium whitespace-nowrap text-slate-500 hover:text-slate-700 flex items-center gap-2">
+                <i class="fa-solid fa-book"></i> Acervo de Livros
+            </button>
+            <button onclick="switchTab('loans')" id="tab-loans" class="py-4 px-1 text-sm font-medium whitespace-nowrap text-slate-500 hover:text-slate-700 flex items-center gap-2">
+                <i class="fa-solid fa-handshake"></i> Empréstimos
+            </button>
+            <button onclick="switchTab('students')" id="tab-students" class="py-4 px-1 text-sm font-medium whitespace-nowrap text-slate-500 hover:text-slate-700 flex items-center gap-2">
+                <i class="fa-solid fa-graduation-cap"></i> Alunos & Lectores
+            </button>
+        </div>
+    </nav>
+
+    <!-- Main Content Container -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+        <!-- ==================== DASHBOARD SECTION ==================== -->
+        <section id="sec-dashboard" class="space-y-6">
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6">
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-4">
+                    <div class="p-3 bg-indigo-100 text-indigo-600 rounded-lg">
+                        <i class="fa-solid fa-books text-2xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-medium text-slate-500 uppercase">Total do Acervo</p>
+                        <h3 id="stat-total-books" class="text-2xl font-bold text-slate-900">0</h3>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-4">
+                    <div class="p-3 bg-amber-100 text-amber-600 rounded-lg">
+                        <i class="fa-solid fa-book-reader text-2xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-medium text-slate-500 uppercase">Empréstimos Ativos</p>
+                        <h3 id="stat-active-loans" class="text-2xl font-bold text-slate-900">0</h3>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-4">
+                    <div class="p-3 bg-rose-100 text-rose-600 rounded-lg">
+                        <i class="fa-solid fa-clock text-2xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-medium text-slate-500 uppercase">Em Atraso</p>
+                        <h3 id="stat-overdue-loans" class="text-2xl font-bold text-slate-900">0</h3>
+                    </div>
+                </div>
+
+                <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center space-x-4">
+                    <div class="p-3 bg-emerald-100 text-emerald-600 rounded-lg">
+                        <i class="fa-solid fa-users text-2xl"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs font-medium text-slate-500 uppercase">Alunos Cadastrados</p>
+                        <h3 id="stat-total-students" class="text-2xl font-bold text-slate-900">0</h3>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Action Cards & Recent Activity -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Quick Actions -->
+                <div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                    <h2 class="font-bold text-slate-800 text-lg flex items-center gap-2">
+                        <i class="fa-solid fa-bolt text-indigo-600"></i> Ações Rápidas
+                    </h2>
+                    <div class="grid grid-cols-1 gap-3">
+                        <button onclick="openBookModal()" class="w-full py-3 px-4 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-medium rounded-lg text-left flex items-center justify-between transition">
+                            <span class="flex items-center gap-2"><i class="fa-solid fa-plus-circle"></i> Cadastrar Novo Livro</span>
+                            <i class="fa-solid fa-chevron-right text-xs"></i>
+                        </button>
+                        <button onclick="openLoanModal()" class="w-full py-3 px-4 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-medium rounded-lg text-left flex items-center justify-between transition">
+                            <span class="flex items-center gap-2"><i class="fa-solid fa-handshake"></i> Novo Empréstimo</span>
+                            <i class="fa-solid fa-chevron-right text-xs"></i>
+                        </button>
+                        <button onclick="openStudentModal()" class="w-full py-3 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-lg text-left flex items-center justify-between transition">
+                            <span class="flex items-center gap-2"><i class="fa-solid fa-user-plus"></i> Cadastrar Novo Aluno</span>
+                            <i class="fa-solid fa-chevron-right text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Recent Loans List -->
+                <div class="lg:col-span-2 bg-white p-6 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                    <div class="flex justify-between items-center">
+                        <h2 class="font-bold text-slate-800 text-lg flex items-center gap-2">
+                            <i class="fa-solid fa-history text-indigo-600"></i> Empréstimos Recentes
+                        </h2>
+                        <button onclick="switchTab('loans')" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800">Ver Todos</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-slate-50 text-slate-500 font-medium text-xs uppercase border-b border-slate-200">
+                                <tr>
+                                    <th class="py-2 px-3">Livro</th>
+                                    <th class="py-2 px-3">Aluno</th>
+                                    <th class="py-2 px-3">Devolução</th>
+                                    <th class="py-2 px-3">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dash-recent-loans" class="divide-y divide-slate-100">
+                                <!-- Dynamic recent loans -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== BOOKS CATALOG SECTION ==================== -->
+        <section id="sec-books" class="space-y-6 hidden">
+            <!-- Search & Actions Bar -->
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-4 justify-between items-center">
+                <div class="flex-grow flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                    <div class="relative flex-grow">
+                        <i class="fa-solid fa-search absolute left-3 top-3 text-slate-400"></i>
+                        <input type="text" id="book-search" oninput="renderBooks()" placeholder="Buscar por título, autor ou código ISBN..." class="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+                    <select id="book-category-filter" onchange="renderBooks()" class="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        <option value="">Todas as Categorias</option>
+                        <option value="Literatura">Literatura</option>
+                        <option value="Ciências">Ciências</option>
+                        <option value="História">História</option>
+                        <option value="Matemática">Matemática</option>
+                        <option value="Geografia">Geografia</option>
+                        <option value="Outros">Outros</option>
+                    </select>
+                </div>
+                <button onclick="openBookModal()" class="w-full md:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg text-sm flex items-center justify-center gap-2 transition">
+                    <i class="fa-solid fa-plus"></i> Adicionar Livro
+                </button>
+            </div>
+
+            <!-- Books Grid -->
+            <div id="books-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                <!-- Book Cards rendered dynamically -->
+            </div>
+        </section>
+
+        <!-- ==================== LOANS SECTION ==================== -->
+        <section id="sec-loans" class="space-y-6 hidden">
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row gap-4 justify-between items-center">
+                <div class="flex gap-2 w-full sm:w-auto">
+                    <select id="loan-status-filter" onchange="renderLoans()" class="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none w-full">
+                        <option value="">Todos os Status</option>
+                        <option value="ativo">Ativos</option>
+                        <option value="atrasado">Atrasados</option>
+                        <option value="devolvido">Devolvidos</option>
+                    </select>
+                </div>
+                <button onclick="openLoanModal()" class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 px-4 rounded-lg text-sm flex items-center justify-center gap-2 transition">
+                    <i class="fa-solid fa-handshake"></i> Novo Empréstimo
+                </button>
+            </div>
+
+            <!-- Loans Table -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-50 text-slate-500 font-medium text-xs uppercase border-b border-slate-200">
+                            <tr>
+                                <th class="py-3 px-4">Livro</th>
+                                <th class="py-3 px-4">Aluno</th>
+                                <th class="py-3 px-4">Data Empréstimo</th>
+                                <th class="py-3 px-4">Data Devolução</th>
+                                <th class="py-3 px-4">Status</th>
+                                <th class="py-3 px-4 text-right">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="loans-list" class="divide-y divide-slate-100">
+                            <!-- Loans rendered dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== STUDENTS SECTION ==================== -->
+        <section id="sec-students" class="space-y-6 hidden">
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row gap-4 justify-between items-center">
+                <div class="relative flex-grow w-full sm:w-auto">
+                    <i class="fa-solid fa-search absolute left-3 top-3 text-slate-400"></i>
+                    <input type="text" id="student-search" oninput="renderStudents()" placeholder="Buscar aluno por nome, turma ou matrícula..." class="w-full pl-9 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                </div>
+                <button onclick="openStudentModal()" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg text-sm flex items-center justify-center gap-2 transition">
+                    <i class="fa-solid fa-user-plus"></i> Adicionar Aluno
+                </button>
+            </div>
+
+            <!-- Students List -->
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-slate-50 text-slate-500 font-medium text-xs uppercase border-b border-slate-200">
+                            <tr>
+                                <th class="py-3 px-4">Matrícula</th>
+                                <th class="py-3 px-4">Nome</th>
+                                <th class="py-3 px-4">Turma / Série</th>
+                                <th class="py-3 px-4">Contacto</th>
+                                <th class="py-3 px-4 text-right">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="students-list" class="divide-y divide-slate-100">
+                            <!-- Students rendered dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modal: Add/Edit Book -->
+    <div id="modal-book" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden animate-fadeIn">
+            <div class="bg-indigo-600 px-6 py-4 flex justify-between items-center text-white">
+                <h3 id="modal-book-title" class="font-bold text-lg">Novo Livro</h3>
+                <button onclick="closeModal('modal-book')" class="text-indigo-200 hover:text-white"><i class="fa-solid fa-times text-xl"></i></button>
+            </div>
+            <form id="form-book" onsubmit="saveBook(event)" class="p-6 space-y-4">
+                <input type="hidden" id="book-id">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Título do Livro</label>
+                    <input type="text" id="book-title" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Autor</label>
+                    <input type="text" id="book-author" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Categoria</label>
+                        <select id="book-category" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                            <option value="Literatura">Literatura</option>
+                            <option value="Ciências">Ciências</option>
+                            <option value="História">História</option>
+                            <option value="Matemática">Matemática</option>
+                            <option value="Geografia">Geografia</option>
+                            <option value="Outros">Outros</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Qtd. Exemplares</label>
+                        <input type="number" id="book-quantity" min="1" value="1" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Código / ISBN</label>
+                    <input type="text" id="book-isbn" placeholder="Opcional" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                </div>
+                <div class="pt-2 flex justify-end gap-2">
+                    <button type="button" onclick="closeModal('modal-book')" class="px-4 py-2 border border-slate-300 rounded-lg text-sm text-slate-600 font-medium hover:bg-slate-50">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium">Salvar Livro</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: New Loan -->
+    <div id="modal-loan" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+            <div class="bg-emerald-600 px-6 py-4 flex justify-between items-center text-white">
+                <h3 class="font-bold text-lg">Registrar Empréstimo</h3>
+                <button onclick="closeModal('modal-loan')" class="text-emerald-200 hover:text-white"><i class="fa-solid fa-times text-xl"></i></button>
+            </div>
+            <form id="form-loan" onsubmit="saveLoan(event)" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Selecione o Livro</label>
+                    <select id="loan-book-id" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                        <!-- Dynamic options -->
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Selecione o Aluno</label>
+                    <select id="loan-student-id" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                        <!-- Dynamic options -->
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Data Prevista de Devolução</label>
+                    <input type="date" id="loan-due-date" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none">
+                </div>
+                <div class="pt-2 flex justify-end gap-2">
+                    <button type="button" onclick="closeModal('modal-loan')" class="px-4 py-2 border border-slate-300 rounded-lg text-sm text-slate-600 font-medium hover:bg-slate-50">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium">Confirmar Empréstimo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: Add Student -->
+    <div id="modal-student" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+            <div class="bg-indigo-600 px-6 py-4 flex justify-between items-center text-white">
+                <h3 class="font-bold text-lg">Cadastrar Aluno</h3>
+                <button onclick="closeModal('modal-student')" class="text-indigo-200 hover:text-white"><i class="fa-solid fa-times text-xl"></i></button>
+            </div>
+            <form id="form-student" onsubmit="saveStudent(event)" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Nome Completo</label>
+                    <input type="text" id="student-name" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Turma / Série</label>
+                        <input type="text" id="student-class" placeholder="Ex: 8º Ano A" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Nº Matrícula</label>
+                        <input type="text" id="student-code" required class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Telefone / Contacto</label>
+                    <input type="text" id="student-phone" placeholder="Ex: (00) 00000-0000" class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                </div>
+                <div class="pt-2 flex justify-end gap-2">
+                    <button type="button" onclick="closeModal('modal-student')" class="px-4 py-2 border border-slate-300 rounded-lg text-sm text-slate-600 font-medium hover:bg-slate-50">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium">Salvar Aluno</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Application Logic Script -->
+    <script>
+        // State storage
+        let db = {
+            books: [],
+            students: [],
+            loans: []
+        };
+
+        // Initialize default sample data if empty
+        function initData() {
+            const saved = localStorage.getItem('school_library_db');
+            if (saved) {
+                try {
+                    db = JSON.parse(saved);
+                } catch (e) {
+                    console.error("Error loading localStorage", e);
+                }
+            } else {
+                // Populate initial realistic demo data
+                db.books = [
+                    { id: 'b1', title: 'Dom Casmurro', author: 'Machado de Assis', category: 'Literatura', quantity: 3, available: 2, isbn: '9788535902778' },
+                    { id: 'b2', title: 'O Cortiço', author: 'Aluísio Azevedo', category: 'Literatura', quantity: 2, available: 2, isbn: '9788508041534' },
+                    { id: 'b3', title: 'História do Brasil para Crianças', author: 'Ana Maria', category: 'História', quantity: 5, available: 4, isbn: '9788512345678' }
+                ];
+                db.students = [
+                    { id: 's1', name: 'Lucas Silva', classGroup: '9º Ano A', code: '202601', phone: '(11) 98765-4321' },
+                    { id: 's2', name: 'Mariana Santos', classGroup: '8º Ano B', code: '202602', phone: '(11) 91234-5678' }
+                ];
+                db.loans = [
+                    { id: 'l1', bookId: 'b1', studentId: 's1', loanDate: getDaysAgo(5), dueDate: getDaysAgo(-5), returned: false }
+                ];
+                saveToStorage();
+            }
+            refreshAllViews();
+        }
+
+        function saveToStorage() {
+            localStorage.setItem('school_library_db', JSON.stringify(db));
+            refreshAllViews();
+        }
+
+        function getDaysAgo(days) {
+            const date = new Date();
+            date.setDate(date.getDate() - days);
+            return date.toISOString().split('T')[0];
+        }
+
+        // Navigation
+        function switchTab(tabName) {
+            ['dashboard', 'books', 'loans', 'students'].forEach(tab => {
+                document.getElementById(`sec-${tab}`).classList.add('hidden');
+                document.getElementById(`tab-${tab}`).classList.remove('tab-active');
+            });
+            document.getElementById(`sec-${tabName}`).classList.remove('hidden');
+            document.getElementById(`tab-${tabName}`).classList.add('tab-active');
+        }
+
+        // Modals
+        function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+        // Render Dashboard
+        function renderDashboard() {
+            document.getElementById('stat-total-books').textContent = db.books.reduce((acc, b) => acc + parseInt(b.quantity), 0);
+            
+            const activeLoans = db.loans.filter(l => !l.returned);
+            document.getElementById('stat-active-loans').textContent = activeLoans.length;
+
+            const today = new Date().toISOString().split('T')[0];
+            const overdue = activeLoans.filter(l => l.dueDate < today);
+            document.getElementById('stat-overdue-loans').textContent = overdue.length;
+
+            document.getElementById('stat-total-students').textContent = db.students.length;
+
+            // Render Recent Loans
+            const recentTable = document.getElementById('dash-recent-loans');
+            recentTable.innerHTML = '';
+            
+            if (db.loans.length === 0) {
+                recentTable.innerHTML = `<tr><td colspan="4" class="text-center py-4 text-slate-400">Nenhum empréstimo registrado.</td></tr>`;
+                return;
+            }
+
+            db.loans.slice(-5).reverse().forEach(loan => {
+                const book = db.books.find(b => b.id === loan.bookId) || { title: 'Livro Removido' };
+                const student = db.students.find(s => s.id === loan.studentId) || { name: 'Aluno Removido' };
+                const isOverdue = !loan.returned && loan.dueDate < today;
+
+                let statusBadge = loan.returned 
+                    ? `<span class="px-2 py-1 text-xs rounded-full bg-slate-100 text-slate-600">Devolvido</span>`
+                    : (isOverdue 
+                        ? `<span class="px-2 py-1 text-xs rounded-full bg-rose-100 text-rose-700 font-semibold">Atrasado</span>`
+                        : `<span class="px-2 py-1 text-xs rounded-full bg-amber-100 text-amber-700">Em Aberto</span>`);
+
+                recentTable.innerHTML += `
+                    <tr>
+                        <td class="py-2.5 px-3 font-medium text-slate-800">${escapeHtml(book.title)}</td>
+                        <td class="py-2.5 px-3 text-slate-600">${escapeHtml(student.name)}</td>
+                        <td class="py-2.5 px-3 text-slate-500">${formatDate(loan.dueDate)}</td>
+                        <td class="py-2.5 px-3">${statusBadge}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        // Render Books Catalog
+        function renderBooks() {
+            const grid = document.getElementById('books-grid');
+            const search = document.getElementById('book-search').value.toLowerCase();
+            const category = document.getElementById('book-category-filter').value;
+
+            grid.innerHTML = '';
+
+            const filtered = db.books.filter(b => {
+                const matchSearch = b.title.toLowerCase().includes(search) || 
+                                    b.author.toLowerCase().includes(search) || 
+                                    (b.isbn && b.isbn.includes(search));
+                const matchCategory = category === '' || b.category === category;
+                return matchSearch && matchCategory;
+            });
+
+            if (filtered.length === 0) {
+                grid.innerHTML = `<div class="col-span-full text-center py-12 text-slate-400"><i class="fa-solid fa-book-open text-4xl mb-2"></i><p>Nenhum livro encontrado.</p></div>`;
+                return;
+            }
+
+            filtered.forEach(book => {
+                grid.innerHTML += `
+                    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden flex flex-col justify-between hover:shadow-md transition">
+                        <div class="p-5">
+                            <div class="flex justify-between items-start mb-2">
+                                <span class="px-2 py-1 text-xs font-semibold rounded bg-indigo-50 text-indigo-700">${escapeHtml(book.category)}</span>
+                                <span class="text-xs font-medium text-slate-400">Disponível: ${book.available}/${book.quantity}</span>
+                            </div>
+                            <h3 class="font-bold text-slate-800 text-base line-clamp-1">${escapeHtml(book.title)}</h3>
+                            <p class="text-xs text-slate-500 mt-1"><i class="fa-solid fa-feather"></i> ${escapeHtml(book.author)}</p>
+                            ${book.isbn ? `<p class="text-xs text-slate-400 mt-2 font-mono">ISBN: ${escapeHtml(book.isbn)}</p>` : ''}
+                        </div>
+                        <div class="bg-slate-50 px-5 py-3 border-t border-slate-100 flex justify-end gap-2">
+                            <button onclick="editBook('${book.id}')" class="text-xs text-indigo-600 hover:text-indigo-800 font-medium px-2 py-1"><i class="fa-solid fa-pen"></i> Editar</button>
+                            <button onclick="deleteBook('${book.id}')" class="text-xs text-rose-600 hover:text-rose-800 font-medium px-2 py-1"><i class="fa-solid fa-trash"></i> Excluir</button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // Book CRUD
+        function openBookModal(book = null) {
+            document.getElementById('book-id').value = book ? book.id : '';
+            document.getElementById('book-title').value = book ? book.title : '';
+            document.getElementById('book-author').value = book ? book.author : '';
+            document.getElementById('book-category').value = book ? book.category : 'Literatura';
+            document.getElementById('book-quantity').value = book ? book.quantity : 1;
+            document.getElementById('book-isbn').value = book ? book.isbn || '' : '';
+            document.getElementById('modal-book-title').textContent = book ? 'Editar Livro' : 'Novo Livro';
+            openModal('modal-book');
+        }
+
+        function saveBook(e) {
+            e.preventDefault();
+            const id = document.getElementById('book-id').value;
+            const title = document.getElementById('book-title').value;
+            const author = document.getElementById('book-author').value;
+            const category = document.getElementById('book-category').value;
+            const quantity = parseInt(document.getElementById('book-quantity').value);
+            const isbn = document.getElementById('book-isbn').value;
+
+            if (id) {
+                const book = db.books.find(b => b.id === id);
+                const diff = quantity - book.quantity;
+                book.title = title;
+                book.author = author;
+                book.category = category;
+                book.quantity = quantity;
+                book.available = Math.max(0, book.available + diff);
+                book.isbn = isbn;
+            } else {
+                db.books.push({
+                    id: 'b' + Date.now(),
+                    title, author, category, quantity,
+                    available: quantity, isbn
+                });
+            }
+            saveToStorage();
+            closeModal('modal-book');
+        }
+
+        function editBook(id) {
+            const book = db.books.find(b => b.id === id);
+            if (book) openBookModal(book);
+        }
+
+        function deleteBook(id) {
+            if (confirm("Tem certeza de que deseja excluir este livro?")) {
+                db.books = db.books.filter(b => b.id !== id);
+                saveToStorage();
+            }
+        }
+
+        // Render Loans List
+        function renderLoans() {
+            const list = document.getElementById('loans-list');
+            const statusFilter = document.getElementById('loan-status-filter').value;
+            const today = new Date().toISOString().split('T')[0];
+
+            list.innerHTML = '';
+
+            const filtered = db.loans.filter(l => {
+                if (statusFilter === 'devolvido') return l.returned;
+                if (statusFilter === 'ativo') return !l.returned;
+                if (statusFilter === 'atrasado') return !l.returned && l.dueDate < today;
+                return true;
+            });
+
+            if (filtered.length === 0) {
+                list.innerHTML = `<tr><td colspan="6" class="text-center py-8 text-slate-400">Nenhum empréstimo encontrado.</td></tr>`;
+                return;
+            }
+
+            filtered.forEach(loan => {
+                const book = db.books.find(b => b.id === loan.bookId) || { title: 'Desconhecido' };
+                const student = db.students.find(s => s.id === loan.studentId) || { name: 'Desconhecido' };
+                const isOverdue = !loan.returned && loan.dueDate < today;
+
+                list.innerHTML += `
+                    <tr>
+                        <td class="py-3 px-4 font-medium text-slate-800">${escapeHtml(book.title)}</td>
+                        <td class="py-3 px-4 text-slate-600">${escapeHtml(student.name)}</td>
+                        <td class="py-3 px-4 text-slate-500">${formatDate(loan.loanDate)}</td>
+                        <td class="py-3 px-4 text-slate-500">${formatDate(loan.dueDate)}</td>
+                        <td class="py-3 px-4">
+                            ${loan.returned 
+                                ? `<span class="px-2 py-1 text-xs rounded-full bg-slate-100 text-slate-600">Devolvido</span>`
+                                : (isOverdue 
+                                    ? `<span class="px-2 py-1 text-xs rounded-full bg-rose-100 text-rose-700 font-semibold">Atrasado</span>`
+                                    : `<span class="px-2 py-1 text-xs rounded-full bg-amber-100 text-amber-700">Em Aberto</span>`)}
+                        </td>
+                        <td class="py-3 px-4 text-right">
+                            ${!loan.returned ? `<button onclick="returnBook('${loan.id}')" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-medium text-xs px-3 py-1 rounded-md transition"><i class="fa-solid fa-check"></i> Devolver</button>` : ''}
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function openLoanModal() {
+            const bookSelect = document.getElementById('loan-book-id');
+            const studentSelect = document.getElementById('loan-student-id');
+
+            bookSelect.innerHTML = db.books.filter(b => b.available > 0)
+                .map(b => `<option value="${b.id}">${escapeHtml(b.title)} (${b.available} disp.)</option>`).join('');
+
+            studentSelect.innerHTML = db.students
+                .map(s => `<option value="${s.id}">${escapeHtml(s.name)} - ${escapeHtml(s.classGroup)}</option>`).join('');
+
+            if (db.books.filter(b => b.available > 0).length === 0) {
+                alert("Não há livros disponíveis no momento para empréstimo.");
+                return;
+            }
+            if (db.students.length === 0) {
+                alert("Cadastre pelo menos um aluno antes de registrar empréstimos.");
+                return;
+            }
+
+            // Default due date: 7 days from today
+            const defaultDue = new Date();
+            defaultDue.setDate(defaultDue.getDate() + 7);
+            document.getElementById('loan-due-date').value = defaultDue.toISOString().split('T')[0];
+
+            openModal('modal-loan');
+        }
+
+        function saveLoan(e) {
+            e.preventDefault();
+            const bookId = document.getElementById('loan-book-id').value;
+            const studentId = document.getElementById('loan-student-id').value;
+            const dueDate = document.getElementById('loan-due-date').value;
+
+            const book = db.books.find(b => b.id === bookId);
+            if (book && book.available > 0) {
+                book.available -= 1;
+                db.loans.push({
+                    id: 'l' + Date.now(),
+                    bookId,
+                    studentId,
+                    loanDate: new Date().toISOString().split('T')[0],
+                    dueDate,
+                    returned: false
+                });
+                saveToStorage();
+                closeModal('modal-loan');
+            }
+        }
+
+        function returnBook(loanId) {
+            const loan = db.loans.find(l => l.id === loanId);
+            if (loan) {
+                loan.returned = true;
+                const book = db.books.find(b => b.id === loan.bookId);
+                if (book) book.available += 1;
+                saveToStorage();
+            }
+        }
+
+        // Render Students List
+        function renderStudents() {
+            const list = document.getElementById('students-list');
+            const search = document.getElementById('student-search').value.toLowerCase();
+
+            list.innerHTML = '';
+
+            const filtered = db.students.filter(s => 
+                s.name.toLowerCase().includes(search) || 
+                s.classGroup.toLowerCase().includes(search) || 
+                s.code.toLowerCase().includes(search)
+            );
+
+            if (filtered.length === 0) {
+                list.innerHTML = `<tr><td colspan="5" class="text-center py-8 text-slate-400">Nenhum aluno encontrado.</td></tr>`;
+                return;
+            }
+
+            filtered.forEach(student => {
+                list.innerHTML += `
+                    <tr>
+                        <td class="py-3 px-4 font-mono text-xs text-slate-500">${escapeHtml(student.code)}</td>
+                        <td class="py-3 px-4 font-medium text-slate-800">${escapeHtml(student.name)}</td>
+                        <td class="py-3 px-4 text-slate-600">${escapeHtml(student.classGroup)}</td>
+                        <td class="py-3 px-4 text-slate-500">${escapeHtml(student.phone || '-')}</td>
+                        <td class="py-3 px-4 text-right">
+                            <button onclick="deleteStudent('${student.id}')" class="text-xs text-rose-600 hover:text-rose-800 font-medium px-2 py-1"><i class="fa-solid fa-trash"></i> Excluir</button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function openStudentModal() {
+            document.getElementById('form-student').reset();
+            openModal('modal-student');
+        }
+
+        function saveStudent(e) {
+            e.preventDefault();
+            db.students.push({
+                id: 's' + Date.now(),
+                name: document.getElementById('student-name').value,
+                classGroup: document.getElementById('student-class').value,
+                code: document.getElementById('student-code').value,
+                phone: document.getElementById('student-phone').value
+            });
+            saveToStorage();
+            closeModal('modal-student');
+        }
+
+        function deleteStudent(id) {
+            if (confirm("Excluir este aluno?")) {
+                db.students = db.students.filter(s => s.id !== id);
+                saveToStorage();
+            }
+        }
+
+        // Utilities
+        function refreshAllViews() {
+            renderDashboard();
+            renderBooks();
+            renderLoans();
+            renderStudents();
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            const parts = dateStr.split('-');
+            return `${parts[2]}/${parts[1]}/${parts[0]}`;
+        }
+
+        function escapeHtml(text) {
+            return String(text)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // Data Export/Import
+        function exportData() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(db));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `biblioteca_backup_${new Date().toISOString().split('T')[0]}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        function importData(event) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if (imported.books && imported.students && imported.loans) {
+                        db = imported;
+                        saveToStorage();
+                        alert("Dados importados com sucesso!");
+                    } else {
+                        alert("Ficheiro inválido.");
+                    }
+                } catch (err) {
+                    alert("Erro ao ler o ficheiro.");
+                }
+            };
+            reader.readAsText(event.target.files[0]);
+        }
+
+        // Inline Service Worker Registration for PWA support
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                const swCode = `
+                    self.addEventListener('install', e => self.skipWaiting());
+                    self.addEventListener('activate', e => self.clients.claim());
+                    self.addEventListener('fetch', e => e.respondWith(fetch(e.request)));
+                `;
+                const blob = new Blob([swCode], { type: 'text/javascript' });
+                navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(() => {});
+            });
+        }
+
+        // Initialize application on page load
+        window.onload = initData;
+    </script>
+</body>
+</html>
